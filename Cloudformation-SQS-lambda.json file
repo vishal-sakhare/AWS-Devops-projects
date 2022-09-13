@@ -1,0 +1,207 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "LambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Code": {
+                    "ZipFile": "console.log('Loading DynamoDB Lambda function');\nvar AWS = require('aws-sdk');\nvar dynamo = new AWS.DynamoDB.DocumentClient();\nexports.handler = function(event, context, callback) {\n//console.log('Received event:', JSON.stringify(event, null, 2));\nvar operation = event.operation;\nif (event.tableName) {\n  event.payload.TableName = event.tableName;\n}\nswitch (operation) {\n      case 'create':\n          dynamo.put(event.payload, callback);\n          break;\n      case 'read':\n          dynamo.get(event.payload, callback);\n          break;\n      case 'update':\n          dynamo.update(event.payload, callback);\n          break;\n      case 'delete':\n          dynamo.delete(event.payload, callback);\n          break;\n      case 'list':\n          dynamo.scan(event.payload, callback);\n          break;\n      default:\n          callback('Unknown operation: ${operation}');\n}\n};\n"
+                },
+                "FunctionName": {
+                    "Ref": "LambdaFuncName"
+                },
+                "Handler": "index.handler",
+                "Runtime": "nodejs12.x",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "IAMRole",
+                        "Arn"
+                    ]
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "791ae859-d545-457d-aed6-cccb821f4e7e"
+                }
+            }
+        },
+        "IAMRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "lambda.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "Policy_api-lambda-db",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "dynamodb:BatchGetItem",
+                                        "dynamodb:BatchWriteItem",
+                                        "dynamodb:TagResource",
+                                        "dynamodb:UntagResource",
+                                        "dynamodb:PutItem",
+                                        "dynamodb:DeleteItem",
+                                        "dynamodb:GetItem",
+                                        "dynamodb:Scan",
+                                        "dynamodb:Query",
+                                        "dynamodb:UpdateItem"
+                                    ],
+                                    "Resource": "*"
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "logs:CreateLogStream",
+                                        "logs:CreateLogGroup",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "59730e90-dcb2-44fe-8150-a68a1db9e8bb"
+                }
+            }
+        },
+        "RDSDBI1IIQS": {
+            "Type": "AWS::RDS::DBInstance",
+            "Properties": {},
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "40a87899-b142-44bb-8cb9-47603cc94c44"
+                }
+            },
+            "DependsOn": [
+                "LambdaFunction"
+            ]
+        },
+        "SQSQ2B58B": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {},
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "658ea81a-6ef5-41ba-818d-014bbca48054"
+                }
+            },
+            "DependsOn": [
+                "LambdaFunction"
+            ]
+        }
+    },
+    "Parameters": {
+        "LambdaFuncName": {
+            "Type": "String",
+            "Default": "Lambda_api-lambda-db"
+        },
+        "DynamoDBTableName": {
+            "Type": "String",
+            "Default": "Dynamo_api-lambda-db"
+        },
+        "APIName": {
+            "Type": "String",
+            "Default": "API_api-lambda-db"
+        },
+        "EnvironmentName": {
+            "Type": "String",
+            "Default": "Prod"
+        }
+    },
+    "Metadata": {
+        "AWS::CloudFormation::Designer": {
+            "59730e90-dcb2-44fe-8150-a68a1db9e8bb": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 50,
+                    "y": 400
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "791ae859-d545-457d-aed6-cccb821f4e7e": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 280,
+                    "y": 400
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "40a87899-b142-44bb-8cb9-47603cc94c44": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 160,
+                    "y": 400
+                },
+                "z": 0,
+                "dependson": [
+                    "791ae859-d545-457d-aed6-cccb821f4e7e"
+                ]
+            },
+            "4cce6166-a3b6-44db-a91f-a2712292a160": {
+                "source": {
+                    "id": "40a87899-b142-44bb-8cb9-47603cc94c44"
+                },
+                "target": {
+                    "id": "791ae859-d545-457d-aed6-cccb821f4e7e"
+                },
+                "z": 11
+            },
+            "658ea81a-6ef5-41ba-818d-014bbca48054": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 166,
+                    "y": 266
+                },
+                "z": 0,
+                "dependson": [
+                    "791ae859-d545-457d-aed6-cccb821f4e7e"
+                ]
+            },
+            "724c3098-b3d5-4d34-9e03-72dc25580f75": {
+                "source": {
+                    "id": "658ea81a-6ef5-41ba-818d-014bbca48054"
+                },
+                "target": {
+                    "id": "791ae859-d545-457d-aed6-cccb821f4e7e"
+                },
+                "z": 12
+            }
+        }
+    }
+}
